@@ -6,41 +6,51 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const API_KEY = process.env.OPENAI_API_KEY;
+const API_KEY = process.env.GEMINI_API_KEY;
 
 app.post("/chat", async (req, res) => {
-  try{
+  try {
     const userMessage = req.body.message;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `
 Você é um atendente profissional da MAXPLAY TV.
-Explique planos, valores, compatibilidade e incentive o cliente a falar no WhatsApp 27 99797-4777.
+Explique planos, valores, compatibilidade, estabilidade e leve o cliente para o WhatsApp 27 99797-4777.
+Seja educado, objetivo e vendedor.
+                  
+Pergunta do cliente: ${userMessage}
 `
-          },
-          { role: "user", content: userMessage }
-        ]
-      })
-    });
+                }
+              ]
+            }
+          ]
+        })
+      }
+    );
 
     const data = await response.json();
-    res.json({ reply: data.choices[0].message.content });
+    const reply =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Não entendi, pode repetir?";
 
-  }catch(e){
-    res.status(500).json({reply:"Erro no atendimento. Tente novamente."});
+    res.json({ reply });
+
+  } catch (err) {
+    res.status(500).json({
+      reply: "Erro no atendimento. Tente novamente em instantes."
+    });
   }
 });
 
 app.listen(process.env.PORT || 3000, () =>
-  console.log("🤖 Chatbot IA rodando")
+  console.log("🤖 Chatbot Gemini rodando")
 );
